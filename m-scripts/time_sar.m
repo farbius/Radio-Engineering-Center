@@ -84,13 +84,3 @@ plot(F, sF, '.-b')
 xlabel('\bf f, \bf Ãö')
 ylabel('\bf |sF_\Omega_i_k|')
 grid on
-
-
-
-
-
-
-
-
-
-
