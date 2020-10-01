@@ -28,8 +28,13 @@ R    = [sqrt((x0 - xsar).^2 + y0^2 + zsar^2);
 
 R0  = sqrt(x0.^2 + y0^2 + zsar^2);
 La   = 2; 
-Fdna = [sinc(La*atan(Vsar.*ty./R0)/Lam);
-        sinc(La*atan(Vsar.*(ty-y1/Vsar)./R0)/Lam)];
+
+% Fdna = [sinc(La*atan(Vsar.*ty./R0)/Lam);
+%         sinc(La*atan(Vsar.*(ty-y1/Vsar)./R0)/Lam)];
+    
+Fdna = [exp(-pi.*(La*atan(Vsar.*ty./R0)/Lam).^2);
+        exp(-pi.*(La*atan(Vsar.*(ty-y1/Vsar)./R0)/Lam).^2)];
+    
 
 SDop = zeros(size(R));
 sF   = zeros(size(R));
