@@ -10,7 +10,7 @@ fprintf("Start SAR Model \n");
 gr   = 180 / pi;
 Vsar = 250; 
 zsar = 10000;
-Tsyn = 3.0;
+Tsyn = 5.0;
 Tp   = 2e-3;
 x0   = 0; %4000;
 y0   = 60000;
@@ -20,6 +20,8 @@ Lam  = 0.03;
 dev  = 150e6;
 dt   = 1/dev;
 tau  = 6e-6;
+
+Teta = 90 - atan(x0/y0).*gr
 %% jam parameters
 % Type of jamm
 % 0 - without any jamm
@@ -28,7 +30,7 @@ tau  = 6e-6;
 % 3 - azimuth  0 / pi
 % 4 - azimuth  M / pi
 
-TYPE_Rg = 2; 
+TYPE_Rg = 0; 
 TYPE_Az = 0;
 T_elr   = 0.06e-6; % elementary pulse duration: range
 T_ela   = 10e-3;% elementary pulse duration: azimuth
@@ -186,6 +188,7 @@ end
 
 figure
 imagesc(abs(s_range))
+title('Range compression')
 grid on
 
 figure
@@ -234,6 +237,7 @@ end
 
 figure
 imagesc(abs(sac))
+title('Radar image')
 grid on
 
 
