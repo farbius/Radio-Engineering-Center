@@ -10,12 +10,12 @@ fprintf("Start SAR Model \n");
 gr   = 180 / pi;
 c    = 3e8;
 Vsar = 250; 
-zsar = 7000;
-x0   = 2000; %4000;
+zsar = 10000;
+x0   = 1000; %4000;
 y0   = 90000;
 z0   = 0;
 Lam  = 0.03;
-dTeta= 0.8;  % 
+Teta05= 0.8;  % 
 
 dev  = 150e6;
 dt   = 1/dev/2;
@@ -28,22 +28,20 @@ fprintf("Look angle %2.2f \n", Teta);
 
 dl   = 1;
 Tsyn = (Lam * sqrt(x0^2 + y0^2 + zsar^2))/(dl*2*Vsar*sin(Teta/gr));
-Tsyn = Tsyn*1.0;
 fprintf("Tsyn is %2.2f \n", Tsyn);
-R_op    = sqrt(x0^2 + y0^2 + zsar^2);
-Tp = (2*R_op/c + 1/(2*Vsar/Lam*cos(Teta/gr)))/2;
+R_op    = sqrt(x0^2 + y0^2 + zsar^2)
+Tp =  1e-3;
 fprintf("Pulse repetition %2.2f ms\n", Tp/1e-3);
-Fd      = (2*Vsar/Lam*cos(Teta/gr));
-fprintf("Ave Doppler %f ms\n", 1/Fd/1e-3);
+
 
 
 My   = 2*ceil(.5*(Tsyn/Tp))
-xsar = (-My/2 : My/2-1)*Tp*Vsar;
-ty   = (-My/2 : My/2-1)*Tp;
+% ty   = (-My/2 : My/2-1)*Tp;
+ty   = (0:My-1)*Tp;
 
-R       = sqrt((x0 - xsar).^2 + y0^2 + zsar^2);
+R       = sqrt(((ty-Tsyn/2 - x0/Vsar).*Vsar).^2 + y0^2 + zsar^2);
 
-dX = sqrt(x0^2 + y0^2 + zsar^2)*dTeta/gr;
+dX = sqrt(x0^2 + y0^2 + zsar^2)*Teta05/gr;
 tmin = 2*(sqrt(x0^2 + y0^2 + zsar^2) - dX/2)/c;
 tmax = 2*(sqrt(x0^2 + y0^2 + zsar^2) + dX/2)/c + tau;
 Mx   = 2*ceil((tmax - tmin)/2/dt)
@@ -103,10 +101,13 @@ grid on
 
 fa       =  (-My/2 : My/2-1)/Tsyn;
 fa = fa + 2*Vsar/Lam*cos((Teta)/gr); %fa + 2*Vsar/Lam*cos((Teta)/gr)
-dD_w       =  R_op*(sqrt(fa.^2*Lam^2/(4*Vsar^2)+1)-1);
-% dD_w = R_op.*sqrt(1 - (Lam^2.*fa.^2)./(4*Vsar^2)) - R_op;
+% dD_w       =  R_op*(sqrt(fa.^2*Lam^2/(4*Vsar^2)+1)-1);
+dD_w = R_op.*sqrt(1 - (Lam^2.*fa.^2)./(4*Vsar^2)) - R_op;
 rangD    =  ceil(dD_w/dxI);
-rangDmax =  max(rangD);
+
+fDL      = 2*Vsar/Lam*cos((Teta - Teta05/2)/gr) - 2*Vsar/Lam*cos((Teta)/gr);
+rangDw   = R_op*Lam^2/(4*Vsar^2*dxI).*(fDL - fa) - R_op*Lam^2*fDL^2/(4*Vsar^2*dxI);
+rangDw   = ceil(rangDw);
 
 figure
 plot(rangD , '.-b')
@@ -131,7 +132,7 @@ smbF  = zeros(My, Mx);
 
 for k=1:My  
 %     for m=350:Mx-350  
-        fsmbF(k,:)=circshift(fsmb(k,:), -rangD(k));%fsmb(k,m+rangD(k));       
+        fsmbF(k,:)=circshift(fsmb(k,:), rangD(k));%fsmb(k,m+rangD(k));       
 %     end
 end
 
