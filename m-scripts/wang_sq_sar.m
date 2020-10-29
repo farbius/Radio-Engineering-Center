@@ -16,7 +16,7 @@ Kr   = 4e12;     % Hz/s
 dev  = Tr*Kr;    % LFM
 fprintf(">> девиация ЛЧМ %2.2f МГц \n", dev./1e6);
 
-R_0  = 7500;     % m
+R_0  = 12000;     % m
 fs   = 30e6;     % sample rate (range)
 Vsar = 300;      % m/s
 
@@ -24,7 +24,7 @@ Ka   = -2*Vsar/(R_0*Lam);
 fprf = 2000;     %
 La   = 1;        % antenna length
 
-TetaQ= 10;
+TetaQ= 6;
 fprintf(">> угол наблюдения %2.2f град \n", TetaQ);
 %% computed data
 Rs   = c/fs;     % sample spacing
@@ -33,11 +33,12 @@ TetaH= Lam/La*gr;
 fprintf(">> ширина гл луча ДНА %2.2f град \n", TetaH);
 
 
-Ls   = R_0*TetaH/gr;% length aperture
+Ls   = R_0*(tan((TetaQ+.5*TetaH)/gr) - tan((TetaQ-.5*TetaH)/gr));% length aperture
+fprintf(">> ширина участка синтезирования %5.2f м \n", Ls);
 Fdop = 2*Vsar/La;
 
 Na   = ceil(Ls/As);
-Nr   = ceil(fs/Tr);
+Nr   = ceil(fs*Tr);
 
 fDL  = 2*Vsar/Lam*sin((TetaQ-.5*TetaH)/gr);
 fprintf(">> нижний Доплер %8.2f Гц \n", fDL);
@@ -67,8 +68,9 @@ text(RC+1.0,fDC,txt)
 title('Изменение Доплера на интервале синтезирования')
 xlabel('Дальность, м')
 ylabel('Доплер, Гц')
-hold on
 grid on
+%%
+hr = exp();
 
 
 
