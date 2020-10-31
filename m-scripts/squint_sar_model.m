@@ -15,8 +15,12 @@ zsar = 10000;
 
 % центр участка картографирования
 x0   = 10000; 
-y0   = 1200;
+y0   = 800;
 z0   = 0;
+
+x1   = 10000;
+y1   = 810;
+z1   = 0;
 
 fc    = 10e9;        % частота зондирующего сигнала
 Lam   = c/fc;        % длина волны
@@ -30,16 +34,16 @@ fprintf(">> угол наклона гл луча ДНА %2.2f град\n", TetaQ);
 %% зондирующий сигнал
 dev  = 150e6;
 dt   = 1/dev/2;
-dxI  = c/(1*dev)/1;
+dxI  = c/dev;
 dl   = 1;
 tau  = 6e-6;
 
-%% TO DO
+%% TODO
 % рассчитать период повторения
 % для переноса спектра тр сигнала 
 % в первую зону Найквиста
 
-Fprf = 1000
+Fprf = 700;
 Tp   = 1/Fprf;
 %%
 
@@ -54,11 +58,11 @@ ty   = (0 : My-1)*Tp;
 fa   = (0 : My-1)/Tsyn;
 
 
-x1   = -R_0*tan((TetaQ+.5*Teta05)/gr); % -Tsyn/2*Vsar; % 
-x2   = -R_0*tan((TetaQ)/gr); % 0;           % 
-x3   = -R_0*tan((TetaQ-.5*Teta05)/gr); % -Tsyn/2*Vsar; %
+u1   = -R_0*tan((TetaQ+.5*Teta05)/gr); % 
+u2   = -R_0*tan((TetaQ)/gr); %
+u3   = -R_0*tan((TetaQ-.5*Teta05)/gr); % 
 fprintf(">> положение БРЛС по оси X\n");
-fprintf(">> x1 = %5.2f м, x2 = %5.2f м, x3 = %5.2f м,\n", x1, x2, x3);
+fprintf(">> x1 = %5.2f м, x2 = %5.2f м, x3 = %5.2f м,\n", u1, u2, u3);
 
 
 fD1  = 2*Vsar/Lam*sin((TetaQ-.5*Teta05)/gr);
@@ -71,9 +75,9 @@ fprintf(">> средний Доплер fD2 = %8.2f Гц \n", fD2);
 fprintf(">> ширина спектра тр сигнала %8.2f Гц \n", fD);
 
 
-R3   = sqrt(x3.^2   + R_0^2);
-R2   = sqrt(x2.^2   + R_0^2);
-R1   = sqrt(x1.^2   + R_0^2);
+R3   = sqrt(u3.^2   + R_0^2);
+R2   = sqrt(u2.^2   + R_0^2);
+R1   = sqrt(u1.^2   + R_0^2);
 fprintf(">> slant range R1 = %8.2f m, R2 = %8.2f m, R3 = %8.2f m\n", R1, R2, R3);
 
 if (Fprf > c/(2*abs(R1)))
@@ -84,12 +88,15 @@ elseif(Fprf < 2*Vsar/La)
     return
 end
 
-fprintf(">> %8.2f <= Fprf=%4.2f <= %8.2f \n", 2*Vsar/La, Fprf, c/(2*abs(R1)));
+fprintf(">> выбор частоты повторения Fprf\n");
+fprintf(">> %8.2f <= %d <= %8.2f \n", 2*Vsar/La, Fprf, c/(2*abs(R1)));
 
-%% развертки азимут - дальность
+%% TODO 
+% пересчитать развертку по дальности 
+% из кинематики БРЛС
 dX   =   sqrt(x0^2 + y0^2 + zsar^2)*Teta05/gr;
-tmin = 2*R_0/c - tau;
-tmax = 2*R_0/c + tau;
+tmin = 2*R_0/c - 0.5*tau;
+tmax = 2*R_0/c + 1.5*tau;
 Mx   = 2*ceil((tmax - tmin)/2/dt);
  
 
@@ -98,7 +105,7 @@ fprintf(">> матрица РСА Mx= %d, My= %d \n", Mx, My);
 tx   = tmin + (0:Mx-1)*dt;
 
 % координата X БРЛС
-Xsar = linspace(x1, x3, My);
+Xsar = linspace(u1, u3, My);
 % изменение наклонной дальности
 R    = sqrt(Xsar.^2 + R_0^2);
 
@@ -129,22 +136,16 @@ title("SAR Raw signal: real part")
 grid on
 
 
-% 
-% 
-% u = s_raw;
-% 
 %% demodulation
 s_demod  = zeros(My, Mx);
-Fdd      = 2*Vsar/Lam*cos(Teta/gr);
-s_DopMid = exp(-1i*2*pi*fD2.*ty);
+s_DopMid = exp(1i*2*pi*fD2.*ty);
 for ny = 1 : My
     s_demod(ny, :) = s_raw(ny, :); %.*s_DopMid(ny);
 end
-% 
-% 
-% 
-%% conv in Range direction
 
+
+
+%% conv in Range direction
 
 td0      = tx - 2*R_0/3e8;
 h_range  = exp(1i*pi*dev/tau*(td0.^2-td0*tau)).*(td0>=0 & td0<=tau);
@@ -157,28 +158,37 @@ for k = 1 : My
 end
 % 
 figure
-imagesc(tx.*c/2, 0:My-1, abs(s_range))
+imagesc(1:Mx, 1:My, abs(s_range))
 title('Range compression')
-xlabel('range, m')
+xlabel('range time bins')
 ylabel('azimuth time bins')
 grid on
-% 
-% 
-% 
-%% range cells correction
 
+
+
+%% range cells correction
+% FFT length
 NAzFFT = 1024;
-N_1 = R3*Lam^2/(4*Vsar^2/dxI);
+%% TODO
+% пересчитать спектр траекторного сигнала
+% с учетом субдискретизации
 fa = (1 : NAzFFT);
 
-dN  = R3 - R1
+% cells migration
+dN  = R1 - R3;
+
+% squint view
+N_1 = R3*Lam^2/(4*Vsar^2/dxI);
 dNr = ceil(N_1.*(fD1 - fa./(Tp*NAzFFT)).^2 - N_1*fD1^2);
+
+% broadside view
 % dNr = R_0*sqrt(1 - (k.*Lam*Fprf/(2*Vsar*NAzFFT)).^2) - R_0;
 
 figure
-plot(dNr, fa, '.-b')
+plot( fa,dNr, '.-b')
 xlabel('range bins')
-ylabel('azimuth Hz')
+ylabel('azimuth freq bins')
+title('Range migration')
 grid on
 
 fsmb  = zeros(NAzFFT, Mx);
@@ -188,10 +198,10 @@ end
 
 
 figure
-imagesc(tx.*c/2./1e3, fa, abs(fsmb))
+imagesc(1:Mx, fa, abs(fsmb))
 title('Range compression: Az FFT ')
-xlabel('range, m')
-ylabel('azimuth frequency, Hz')
+xlabel('range time bins')
+ylabel('azimuth freq bins')
 grid on
 
 fsmbF = fsmb;
@@ -203,14 +213,15 @@ end
 
 
 figure
-imagesc(tx.*c/2./1e3, fa, abs(fsmbF))
+% imagesc(tx.*c/2./1e3, fa, abs(fsmbF))
+imagesc(1:Mx, fa, abs(fsmbF))
 title('Range correction: Az FFT')
 xlabel('range time bins')
-ylabel('azimuth frequency bins')
+ylabel('azimuth freq bins')
 grid on
 
-% 
-% % conv in Azimuth direction
+
+%% conv in Azimuth direction
 
 Ka    = 2*Vsar^2/(Lam*R_0);
 % smb0  = exp(1i*pi*Ka.*(ty.^2-ty.*Tsyn));
@@ -221,21 +232,22 @@ fsmb0 = fftshift(fft(smb0, NAzFFT)); %
   sac = zeros(NAzFFT, Mx); 
   sF_range = zeros(NAzFFT, Mx); 
 for l = 1 : Mx
-    fsac(:,l) =  fsmbF(:, l).*fsmb0.'; %sF_range(:,l)   
-     sac(:,l) = (ifft((fsac(:,l)))); %
+    fsac(:,l) =  fsmbF(:, l).*fsmb0.';  
+     sac(:,l) =  ifft(fsac(:,l)); 
 end
 
 figure
-imagesc(tx.*c/2, ty, abs(sac))
+imagesc(1:Mx, fa, abs(sac))
 title('Radar Image')
+xlabel('range time bins')
+ylabel('Dopler freq bins')
 grid on
 
 figure
 mesh(abs(sac))
 grid on
-% 
-% 
-% 
+
+
 
 
 
