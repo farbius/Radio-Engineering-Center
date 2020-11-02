@@ -146,7 +146,7 @@ s_raw(ny, :)= s_raw(ny, :) + Fn(k).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*
     fprintf("...%d", round(ny/My*100));
     end
 end
-fprintf("/n");
+fprintf("\n");
 
 figure
 imagesc(real(s_raw))
@@ -236,7 +236,7 @@ figure
 imagesc(1:Mx, fa, abs(sac))
 title('Radar Image')
 xlabel('range time bins')
-ylabel('Dopler freq bins')
+ylabel('Dopler time bins')
 grid on
 
 figure
