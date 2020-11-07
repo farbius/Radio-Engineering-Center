@@ -2,8 +2,8 @@
 %
 clc
 clear
-% close all
-
+close all
+LOAD = 1;
 fprintf(">> Start SAR Model \n");
 %% константы
 gr   = 180 / pi;
@@ -136,6 +136,9 @@ grid on
 u = linspace(u1, u3, My);
 % матрица РСА
 s_raw = zeros(My, Mx);
+if LOAD == 1
+    load('s_raw.mat');
+else
 for ny = 1 : My
     for k = 1 : Ntarget
           R = sqrt((u(ny) + yn(k)).^2 + (x0 + xn(k))^2 + (zsar + z0)^2);
@@ -147,7 +150,7 @@ s_raw(ny, :)= s_raw(ny, :) + Fn(k).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*
     end
 end
 fprintf("/n");
-
+end
 figure
 imagesc(real(s_raw))
 title("SAR Raw signal: real part")
