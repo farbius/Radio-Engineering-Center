@@ -127,7 +127,7 @@ plot(R_center, f_dop, '.-b', R3, fD1, 'or', R2, fD2, 'or', R1, fD3, 'or')
 txt = ['Teta_H: ' num2str(TetaQ) ' град'];
 text(R2+1.0,fD2,txt)
 title('Изменение Доплера на интервале синтезирования')
-xlabel('Дальность, м')
+xlabel('Range, m')
 ylabel('Доплер, Гц')
 grid on
 
@@ -149,13 +149,12 @@ s_raw(ny, :)= s_raw(ny, :) + Fn(k).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*
     fprintf("...%d", round(ny/My*100));
     end
 end
-<<<<<<< HEAD
+
 fprintf("/n");
 end
-=======
+
 fprintf("\n");
 
->>>>>>> 9c63e40c1f94f297c4a409710c7de688cb4b711f
 figure
 imagesc(real(s_raw))
 title("SAR Raw signal: real part")
