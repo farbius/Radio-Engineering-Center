@@ -3,7 +3,7 @@
 clc
 clear
 close all
-LOAD = 1;
+LOAD = 0;
 fprintf(">> Start SAR Model \n");
 %% константы
 gr   = 180 / pi;
@@ -33,9 +33,8 @@ dxI  = c/dev;  % шаг по дальности
 dyI  = La/2;   % шаг по азимуту
 
 
-
 %% формирование матрицы целевой обстановки
-targets = rgb2gray(imread('targets', 'png'));
+targets = rgb2gray(imread('target', 'png'));
 [Nx, Ny] = size(targets);
 Ntarget = Nx*Ny;
 num=1; xn=zeros(Ntarget,1); 
@@ -150,7 +149,7 @@ s_raw(ny, :)= s_raw(ny, :) + Fn(k).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*
     end
 end
 
-fprintf("/n");
+fprintf("\n");
 end
 
 fprintf("\n");
