@@ -43,28 +43,21 @@ dyI  = dl;        % øàã ïî àçèìóòó
 
 
 %% ôîğìèğîâàíèå ìàòğèöû öåëåâîé îáñòàíîâêè
+% Êîîğäèíàòû öåëåé ğàññ÷èòàíû â ìåòğàõ îòíîñèòåëüíî öåíòğà ó÷àñòêà
+% êàğòîãğàôèğîâàíèÿ x0 y0 z0
+% Ntarget   - êîëè÷åñòâî ıëåìåíòîâ ğàçğåøåíèÿ
+% Map_xyzF - êîîğäèíàòû ıëåìåíòîâ è èõ İÎÏ:     Map_xyzF(1, :) - x axis
+%                                               Map_xyzF(2, :) - y axis
+%                                               Map_xyzF(3, :) - z axis
+%                                               Map_xyzF(4, :) - F İÎÏ
+Ntarget   = 4;
+Map_xyzF = zeros(4, Ntarget);
+xi = [12 0 0];
+yi = [8012 7994 7990];
+zi = [0 0 0];
+Fi = [1 1 1];
 
-targets  = rgb2gray(imread('targets', 'png'));
-[N_l, N_r] = size(targets);
-Ntarget  = N_l*N_r;
-num = 1; 
-r   = zeros(Ntarget,1); 
-l   = zeros(Ntarget,1); 
-Fn  = zeros(Ntarget,1);  
-% ôîğìèğîâàíèå âåêòîğîâ êîîğäèíàò ó÷àñòêà êàğòîãğàôèğîâàíèÿ
-% êîîğäèíàòà z îòñóòñòâóåò 
-for iNy=1:N_l 
-    for iNx=1:N_r 
-        r(num)=(N_r/2-iNx);   
-        l(num)=(N_l/2-iNy+1);  
-        Fn(num)=double(targets(iNy,iNx))/255;     
-        num=num+1; 
-    end 
-end 
-% êîıôôèöèåíò ğàñòÿæåíèÿ
-kx = 6; ky = 6;
-l = l*ky*dyI; 
-r = r*kx*dxI;
+Ntarget = length(xi);
 
 %% TODO
 % ğàññ÷èòàòü ïåğèîä ïîâòîğåíèÿ
@@ -110,17 +103,11 @@ s_raw = zeros(My, Mx);
 tn    = zeros(1, My);
 
 for ny = 1 : My
-    tn(ny) = ty(ny) - Tsyn / 2;
-    
-    for m = 1 : Ntarget
-          tnm = tn(ny) + l(m)/Vsar;
-%          R  = sqrt((R0 + r(m))^2 + Vsar^2*tnm^2);
-%           TetaI = atan(yn(m)/(R0 - xn(m)));
-%          R  = (R0 - xn(m)) + Vsar^2*tn(ny)^2*sin(TetaQ/gr - TetaI)^2 / (2*(R0- xn(m)));
-         R  = sqrt((x0 - l(m) - Vsar*tn(ny))^2 + (y0 - r(m))^2 + zsar^2 );
-         
+      tn(ny) = ty(ny) - Tsyn / 2;
+    for m = 1 : Ntarget 
+          R  = sqrt((xi(m) - Vsar*tn(ny))^2 + yi(m)^2 + zsar^2 );
           td = tx - 2*R/c; 
-s_raw(ny, :) = s_raw(ny, :) + Fn(m).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*pi*R./Lam).*(td>=0 & td<=tau);
+s_raw(ny, :) = s_raw(ny, :) + Fi(m).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*pi*R./Lam).*(td>=0 & td<=tau);
     end
     if(mod(ny, 100) == 0)
     fprintf("...%d", round(ny/My*100));
