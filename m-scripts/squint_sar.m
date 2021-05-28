@@ -26,6 +26,7 @@ dl       = 1; % ì, òğåáóåìîå ğàçğåøåíèå  ïî àçèìóòó
 dr       = 1; % ì, òğåáóåìîå ğàçğåøåíèå  ïî äàëüíîñòè
 
 R0       = sqrt(x0^2 + y0^2 + zsar^2);
+fprintf(">> íàêëîííàÿ äàëüíîñòü öåíòğà ó÷àñòêà êàğòîãğàôèğîâàíèÿ %5.2f ì \n", R0);
 TetaQ    = atan(y0/x0)*gr; %
 sinTeta0 = (x0^2 + y0^2)/y0^2;
 fprintf(">> óãîë íàêëîíà ãë ëó÷à ÄÍÀ %2.2f ãğàä\n", TetaQ);
@@ -36,7 +37,7 @@ Tsyn = Lam*R0 / (dl*2*Vsar*sinTeta0);
 fprintf(">> âğåìÿ ñèíòåçèğîâàíèÿ %1.2f ñ \n", Tsyn);
 
 dev  = c/(2*dr);  % äåâèàöèÿ Ë×Ì  èìïóëüñà
-tau  = 2e-6;      % äëèòåëüíîñòü Ë×Ì èìïóëüñà
+tau  = 1e-6;      % äëèòåëüíîñòü Ë×Ì èìïóëüñà
 dt   = 1/dev/1;   % ïåğèîä ğàáîòû ÀÖÏ
 dxI  = dr;        % øàã ïî äàëüíîñòè
 dyI  = dl;        % øàã ïî àçèìóòó
@@ -50,12 +51,12 @@ dyI  = dl;        % øàã ïî àçèìóòó
 %                                               Map_xyzF(2, :) - y axis
 %                                               Map_xyzF(3, :) - z axis
 %                                               Map_xyzF(4, :) - F İÎÏ
-Ntarget   = 4;
+Ntarget   = 1;
 Map_xyzF = zeros(4, Ntarget);
-xi = [12 0 0];
-yi = [8012 7994 7990];
-zi = [0 0 0];
-Fi = [1 1 1];
+xi = [20  0 10];
+yi = [0 -10 10];
+zi = [0   0  0];
+Fi = [1   1  1];
 
 Ntarget = length(xi);
 
@@ -89,7 +90,7 @@ My   =   ceil(Tsyn/Tp);
 % ğàçâåğòêà "ìåäëåííîãî" âğåìåíè
 ty   = (0 : My-1)*Tp;
 % âğåìÿ íà÷àëà è îêîí÷àíèÿ ïğèåìà îòğàæåííîãî ñèãíàëà
-tmin = 2*R0/c - 0.5*tau;
+tmin = 2*R0/c - 1.5*tau;
 tmax = 2*R0/c + 1.5*tau;
 % êîëè÷åñòâî îòñ÷åòîâ ïî äàëüíîñòè
 Mx   = 2*ceil((tmax - tmin)/2/dt);
@@ -105,7 +106,7 @@ tn    = zeros(1, My);
 for ny = 1 : My
       tn(ny) = ty(ny) - Tsyn / 2;
     for m = 1 : Ntarget 
-          R  = sqrt((xi(m) - Vsar*tn(ny))^2 + yi(m)^2 + zsar^2 );
+          R  = sqrt((x0 + xi(m) - Vsar*tn(ny))^2 + (y0 + yi(m))^2 + zsar^2 );
           td = tx - 2*R/c; 
 s_raw(ny, :) = s_raw(ny, :) + Fi(m).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*pi*R./Lam).*(td>=0 & td<=tau);
     end
@@ -125,7 +126,7 @@ grid on
 
 
 %% conv in Range direction
-td0      = tx - 2*R0/3e8;
+td0      = tx - 2*R0/c;
 h_range  = exp(1i*pi*dev/tau*(td0.^2-td0*tau)).*(td0>=0 & td0<=tau);
 hF_range = fft(h_range);
 s_range  = zeros(My, Mx); 
@@ -139,7 +140,7 @@ end
 
 
 figure
-imagesc(1:Mx, 1:My, abs(s_range))
+imagesc(tx.*c/2, 1:My, abs(s_range))
 title('Range compression')
 xlabel('range time bins')
 ylabel('azimuth time bins')
@@ -159,11 +160,11 @@ end
 % êğóòèçíà òğàåêòîğíîãî ñèãíàëà
 Ka    = 2*Vsar^2/(Lam*R0);
 % ôàçà òğàåêòîğíîãî ñèãíàëà
-FazOp   = 1i*pi*Ka.*ty.*(2*ty(round(My/2+1))-ty);
-smb0    = exp(FazOp);
-fsmb0   = fftshift(fft(smb0, NAzFFT)).'; %     
-fsac    = zeros(NAzFFT, Mx); 
-sac     = zeros(NAzFFT, Mx); 
+FazOp   =  1i*pi*Ka.*ty.*(2*ty(round(My/2+1))-ty);
+smb0    =  exp(FazOp);
+fsmb0   =  fftshift(fft(smb0, NAzFFT)).'; %     
+fsac    =  zeros(NAzFFT, Mx); 
+sac     =  zeros(NAzFFT, Mx); 
 sF_range = zeros(NAzFFT, Mx); 
 for l = 1 : Mx
     fsac(:,l) =  fsmb(:, l).*conj(fsmb0);  
@@ -171,14 +172,10 @@ for l = 1 : Mx
 end
 
 figure
-plot(abs(sac(287, :)))
-grid on
-
-figure
 imagesc(tx.*c/2, tn.*Vsar,abs(sac))%  
 title('Radar Image')
 xlabel('range: m')
-ylabel('Dopler time bins')
+ylabel('azimuth: m')
 grid on
 
 
