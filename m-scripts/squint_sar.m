@@ -12,7 +12,7 @@ c        = 3e8;
 Vsar     = 250;   % скорость движения БРЛС
 zsar     = 10000; % высота полета
 % центр участка картографирования
-x0       = 0000; 
+x0       = 4000; 
 y0       = 8000;
 z0       = 0;
 
@@ -32,8 +32,7 @@ sinTeta0 = (x0^2 + y0^2)/y0^2;
 fprintf(">> угол наклона гл луча ДНА %2.2f град\n", TetaQ);
 %% зондирующий сигнал
 
-
-Tsyn = Lam*R0 / (dl*2*Vsar*sinTeta0);
+Tsyn = Lam*R0 / (dl*2*Vsar*sinTeta0) + 0.0;
 fprintf(">> время синтезирования %1.2f с \n", Tsyn);
 
 dev  = c/(2*dr);  % девиация ЛЧМ  импульса
@@ -45,20 +44,37 @@ dyI  = dl;        % шаг по азимуту
 
 %% формирование матрицы целевой обстановки
 % Координаты целей рассчитаны в метрах относительно центра участка
-% картографирования x0 y0 z0
+% картографирования {x0 y0 z0}
 % Ntarget   - количество элементов разрешения
-% Map_xyzF - координаты элементов и их ЭОП:     Map_xyzF(1, :) - x axis
-%                                               Map_xyzF(2, :) - y axis
-%                                               Map_xyzF(3, :) - z axis
-%                                               Map_xyzF(4, :) - F ЭОП
-Ntarget   = 1;
-Map_xyzF = zeros(4, Ntarget);
-xi = [20  0 10];
-yi = [0 -10 10];
-zi = [0   0  0];
-Fi = [1   1  1];
+% Map_xyzF - координаты элементов и их ЭОП:     Map_xyzF{1} - x axis
+%                                               Map_xyzF{2} - y axis
+%                                               Map_xyzF{3} - z axis
+%                                               Map_xyzF{4} - F ЭОП
+xi = [20  0];
+yi = [20  0];
+zi = [ 0  0];
+Fi = [ 1  1];
+% 
 
-Ntarget = length(xi);
+% xi = [0];
+% yi = [0];
+% zi = [0];
+% Fi = [1];
+
+Map_xyzF = cell(4, 1);
+Ntarget  = length(xi);
+
+if(Ntarget ~= (length(yi) + length(zi) + length(Fi))/3 )
+    fprintf(">> не корректно заданы цели \n");
+    return
+end
+
+Map_xyzF{1} = xi; 
+Map_xyzF{2} = yi;
+Map_xyzF{3} = zi;
+Map_xyzF{4} = Fi;
+
+
 
 %% TODO
 % рассчитать период повторения
@@ -83,7 +99,7 @@ fprintf(">> %8.2f <= %d <= %8.2f \n", 2*Vsar/La, Fprf, c/(2*R0));
 Ls   = R0*(tan((90 - TetaQ+.5*Teta05)/gr) - tan((90 - TetaQ-.5*Teta05)/gr));% length aperture
 fprintf(">> ширина участка синтезирования %5.2f м \n", Ls);
 % длительность интервала синтезирования
-% Tsyn = Ls/Vsar;
+Tsyn = Ls/Vsar;
 fprintf(">> длительность интервала синтезирования %2.2f с \n", Tsyn);
 % колличество накопленных импульсов
 My   =   ceil(Tsyn/Tp);
@@ -102,13 +118,15 @@ fprintf(">> матрица РСА Mx = %d, My = %d \n", Mx, My);
 % матрица РСА
 s_raw = zeros(My, Mx);
 tn    = zeros(1, My);
-
+Rref = zeros(1, My);
 for ny = 1 : My
       tn(ny) = ty(ny) - Tsyn / 2;
+     Rref(ny)  = sqrt((x0 - Vsar*tn(ny))^2 + (y0)^2 + zsar^2 );
+
     for m = 1 : Ntarget 
-          R  = sqrt((x0 + xi(m) - Vsar*tn(ny))^2 + (y0 + yi(m))^2 + zsar^2 );
+          R  = sqrt((x0 + Map_xyzF{1}(m) - Vsar*tn(ny))^2 + (y0 + Map_xyzF{2}(m))^2 + zsar^2 );
           td = tx - 2*R/c; 
-s_raw(ny, :) = s_raw(ny, :) + Fi(m).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*pi*R./Lam).*(td>=0 & td<=tau);
+s_raw(ny, :) = s_raw(ny, :) + Map_xyzF{4}(m).*exp(1i*pi*dev/tau*(td.^2-td*tau))*exp(-1i*4*pi*R./Lam).*(td>=0 & td<=tau);
     end
     if(mod(ny, 100) == 0)
     fprintf("...%d", round(ny/My*100));
@@ -132,8 +150,10 @@ hF_range = fft(h_range);
 s_range  = zeros(My, Mx); 
 fs_raw   = zeros(My, Mx);
 fc_raw   = zeros(My, Mx);
+
+
 for k = 1 : My
-     fs_raw(k , :)   = fft(s_raw(k, :));
+     fs_raw(k , :)   = fft(s_raw(k, :).*hann(Mx).');
      fc_raw(k , :)   = fs_raw(k , :).*conj(hF_range);
     s_range(k , :)   = fftshift(ifft(fc_raw(k , :)));
 end
@@ -149,26 +169,88 @@ grid on
 %% range cells correction
 % FFT length
 NAzFFT = My;
-fa     = (1 : NAzFFT);
+
+%  fa     = (1 : NAzFFT);
+
+fa = -1/Tp/2:1/Tsyn:1/Tp/2;
+dD = R0*(sqrt(fa.^2*Lam^2/(4*Vsar^2)+1)-1);
+
+rangD    = round(dD/dxI);
+rangDmax = max(rangD);
+
+range_dR = round((Rref - min(Rref))/dxI);
+
+% Функция для коррекции 
+% N_1 = R3*Lam^2/(4*Vsar^2/dxI);
+% dNr = ceil(N_1.*(fD1 - fa./(Tp*NAzFFT)).^2 - N_1*fD1^2);
+Tsmb  = zeros(NAzFFT, Mx);
+for k = 1 : My
+        Tsmb(k,:) = circshift(s_range(k,:),  -range_dR(k));
+end
+
+
 % БПФ по азимуту
 fsmb  = zeros(NAzFFT, Mx);
 for l=1:Mx
-    fsmb(:,l)=fftshift(fft(s_range(:,l), NAzFFT)); 
+    fsmb(:,l)=fftshift(fft(Tsmb(:,l), NAzFFT)); 
 end
+fsmbF = fsmb;
+
+
+figure
+imagesc(abs(fsmb))
+title('before RCMC: FFT azimuth')
+grid on
+
+ 
+for k = 1 : My
+        fsmbF(k,:) = circshift(fsmb(k,:), -range_dR(k));
+end
+
+%  
+% for k = 1 : My
+%     for m = 1 : Mx - rangDmax 
+%         fsmbF(k,m) = fsmb(k, m + rangD(k));
+%     end
+% end
+
+figure
+imagesc(abs(fsmbF))
+title('after RCMC: FFT azimuth')
+grid on
+
+
+smbF = zeros(NAzFFT, Mx);
+for l = 1 : Mx
+    smbF(:,l)=ifft(fftshift(fsmbF(:,l)));
+end
+
+
+figure
+imagesc(tx.*c/2, 1:My, abs(smbF))
+title('Range cells migration correction')
+xlabel('range time bins')
+ylabel('azimuth time bins')
+grid on
 
 %% conv in Azimuth direction
 % крутизна траекторного сигнала
 Ka    = 2*Vsar^2/(Lam*R0);
 % фаза траекторного сигнала
 FazOp   =  1i*pi*Ka.*ty.*(2*ty(round(My/2+1))-ty);
+
+smb00 = exp(-1i*4*pi*Rref./Lam);
+
+winvec = hilbert(hann(My));
+
 smb0    =  exp(FazOp);
-fsmb0   =  fftshift(fft(smb0, NAzFFT)).'; %     
+fsmb0   =  fftshift(fft(smb00, NAzFFT)).'; %     
 fsac    =  zeros(NAzFFT, Mx); 
 sac     =  zeros(NAzFFT, Mx); 
 sF_range = zeros(NAzFFT, Mx); 
 for l = 1 : Mx
     fsac(:,l) =  fsmb(:, l).*conj(fsmb0);  
-     sac(:,l) =  fftshift(ifft(fsac(:,l))); 
+     sac(:,l) =  fftshift(ifft(fsac(:,l))).*winvec; 
 end
 
 figure
@@ -177,6 +259,9 @@ title('Radar Image')
 xlabel('range: m')
 ylabel('azimuth: m')
 grid on
+
+figure
+mesh(abs(sac))
 
 
 fprintf(">> End SAR Model \n");
