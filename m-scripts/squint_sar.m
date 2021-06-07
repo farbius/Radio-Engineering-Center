@@ -202,10 +202,10 @@ imagesc(abs(fsmb))
 title('before RCMC: FFT azimuth')
 grid on
 
- 
-for k = 1 : My
-        fsmbF(k,:) = circshift(fsmb(k,:), -range_dR(k));
-end
+%  
+% for k = 1 : My
+%         fsmbF(k,:) = circshift(fsmb(k,:), -range_dR(k));
+% end
 
 %  
 % for k = 1 : My
@@ -236,14 +236,11 @@ grid on
 %% conv in Azimuth direction
 % крутизна траекторного сигнала
 Ka    = 2*Vsar^2/(Lam*R0);
-% фаза траекторного сигнала
-FazOp   =  1i*pi*Ka.*ty.*(2*ty(round(My/2+1))-ty);
 
 smb00 = exp(-1i*4*pi*Rref./Lam);
 
 winvec = hilbert(hann(My));
 
-smb0    =  exp(FazOp);
 fsmb0   =  fftshift(fft(smb00, NAzFFT)).'; %     
 fsac    =  zeros(NAzFFT, Mx); 
 sac     =  zeros(NAzFFT, Mx); 
